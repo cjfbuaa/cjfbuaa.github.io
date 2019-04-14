@@ -15,9 +15,9 @@ MSE = \sum_{i=1}^n (\hat {X_{i}} - X_{i})^{2},
 \end{align}
 $$
 
-where $X$ is vector of observed values and $\hat X$ is vector of generated values. We usually use *MSE* to measure the inconsistency of high-quality images and enhanced images from low-quality.  You can use it by call `nn.MSELoss()` as simple as possible.
+where $X​$ is vector of observed values and $\hat X​$ is vector of generated values. We usually use *MSE* to measure the inconsistency of high-quality images and enhanced images from low-quality.  You can use it by call `nn.MSELoss()` as simple as possible.
 
-## Which Loss function is good ?
+## Which Loss function is good?
 
 Many loss functions are suitable to be used in Image Enhancement tasks.
 
@@ -25,7 +25,7 @@ Many loss functions are suitable to be used in Image Enhancement tasks.
 
 ![Denoising Example From Wikis](https://upload.wikimedia.org/wikipedia/en/e/e8/ROF_Denoising_Example.png)
 
-When the input is a image, we can formulated the TV Loss as:
+When the input is an image, we can formulate the TV Loss as:
 $$
 \begin{align}
 V_{\text{aniso}}(y) &=\sum _{i,j}{\sqrt {|y_{i+1,j}-y_{i,j}|^{2}}}+{\sqrt {|y_{i,j+1}-y_{i,j}|^{2}}} \\
@@ -49,15 +49,15 @@ class TVLoss(nn.Module):
 
 
 
-**Content Loss** or **Perceptual Loss** is widely used in style transfer[3] and image super-resolution tasks [4, 5]. It extract features using pre-trained a VGG network. Using results from this [blog](<https://medium.com/lets-enhance-stories/content-and-style-loss-using-vgg-network-e810a7afe5fc>), we can show the effects by using it as a loss function:
+**Content Loss** or **Perceptual Loss** is widely used in style transfer[3] and image super-resolution tasks [4, 5]. It extracts features using pre-trained a VGG network. Using results from this [blog](<https://medium.com/lets-enhance-stories/content-and-style-loss-using-vgg-network-e810a7afe5fc>), we can show the effects by using it as a loss function:
 
 ![vgg-effects.png](https://i.loli.net/2019/04/14/5cb2ba7cd0f2a.png)
 
-The deeper layer in VGG you use, the more high-level features like object patterns you can combine into final results, in contrast, shallowed layer brings more low-level features. In addition, Wang [5] proposed that features before activation is more better since most features are becoming inactive after activation:
+The deeper layer in VGG you use, the more high-level features like object patterns you can combine into final results, in contrast, shallowed layer brings more low-level features. In addition, Wang [5] proposed that features before activation is better since most features are becoming inactive after activation:
 
 ![Activation Features](https://i.loli.net/2019/04/14/5cb2bcf95d121.png)
 
-We can formulated the Content Loss as below:
+We can formulate the Content Loss as below:
 $$
 \begin{align}
 l_{VGG/x} =
@@ -95,6 +95,7 @@ class ContentLoss(torch.nn.Module):
         generated_vgg = self.feature_extractor(generated)
         groundtruth_vgg = self.feature_extractor(groundtruth)
         groundtruth_vgg_no_grad = groundtruth_vgg.detach()
+        return self.criterion(generated_vgg, groundtruth_vgg_no_grad)
 ```
 
 
