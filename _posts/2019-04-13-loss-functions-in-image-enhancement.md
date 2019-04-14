@@ -36,22 +36,15 @@ where $i, j​$ represent the pixel position. We can use PyTorch to implement it
 
 ```python
 class TVLoss(nn.Module):
-    def __init__(self,TVLoss_weight=1):
-        super(TVLoss,self).__init__()
-        self.TVLoss_weight = TVLoss_weight
+    def __init__(self, tvloss_weight=1):
+        super(TVLoss, self).__init__()
+        self.tvloss_weight = tvloss_weight
 
-    def forward(self,x):
-        batch_size = x.size()[0]
-        h_x = x.size()[2]
-        w_x = x.size()[3]
-        count_h = self._tensor_size(x[:,:,1:,:])
-        count_w = self._tensor_size(x[:,:,:,1:])
-        h_tv = torch.pow((x[:,:,1:,:]-x[:,:,:h_x-1,:]),2).sum()
-        w_tv = torch.pow((x[:,:,:,1:]-x[:,:,:,:w_x-1]),2).sum()
-        return self.TVLoss_weight*2*(h_tv/count_h+w_tv/count_w)/batch_size
-
-    def _tensor_size(self,t):
-        return t.size()[1]*t.size()[2]*t.size()[3]
+    def forward(self, generated):
+        b, c, h, w = generated.size()
+        h_tv = torch.pow((generated[:, :, 1:, :] - generated[:, :, :(h - 1), :]), 2).sum()
+        w_tv = torch.pow((generated[:, :, :, 1:] - generated[:, :, :, :(w - 1)]), 2).sum()
+        return self.tvloss_weight * (h_tv + w_tv) / (b * c * h * w)
 ```
 
 
@@ -74,28 +67,97 @@ $$
 where $x, y$ represent the pixel position, and the $\phi_{i, j}$ denotes the features obtained by the j-th convolution after the activation layer or before the activation layer. We can use PyTorch to implement it as:
 
 ```python
-import torchvision.models.vgg as vgg
+from torchvision import models
 
-class ContentLoss(torch.nn.Module):
-    def __init__(self):
-        super(ContentLoss, self).__init__()
-        self.vgg_layers = vgg.vgg19(pretrained=True).features
-        self.layer_name_mapping = {
-            '3': "relu1",
-            '8': "relu2",
-            '17': "relu3",
-            '26': "relu4",
-            '35': "relu5",
-        }
+class Vgg19(torch.nn.Module):
+    def __init__(self, layers, requires_grad=False):
+        super(Vgg19, self).__init__()
+        vgg_pretrained_features = models.vgg19(pretrained=True).features
+        self.slice = torch.nn.Sequential()
+        for x in range(layers):
+            self.slice.add_module(str(x), vgg_pretrained_features[x])
+        if not requires_grad:
+            for param in self.parameters():
+                param.requires_grad = False
 
     def forward(self, x):
-        output = {}
-        for name, module in self.vgg_layers._modules.items():
-            x = module(x)
-            if name in self.layer_name_mapping:
-                output[self.layer_name_mapping[name]] = x
-        return output
+        f = self.slice(x)
+        return f
+
+
+class ContentLoss(torch.nn.Module):
+    def __init__(self, vgg19_model, layer, criterion):
+        super(ContentLoss, self).__init__()
+        self.feature_extractor = nn.Sequential(*list(vgg19_model.module.features.children())[:layer])
+        self.criterion = criterion
+
+    def forward(self, generated, groundtruth):
+        generated_vgg = self.feature_extractor(generated)
+        groundtruth_vgg = self.feature_extractor(groundtruth)
+        groundtruth_vgg_no_grad = groundtruth_vgg.detach()
 ```
+
+
+
+**Adversarial Color Loss** is proposed by WESPE [6], which is measured by an adversarial discriminator $D_c$. They trained $D_c$ to differentiate between the blurred versions of enhanced $\hat Y$ and input $Y$ images. They define the  Gaussian
+blur as $G_{k,l} = A \exp\bigl(-\frac{(k - \mu_x)^2}{2\sigma_x} -\frac{(l - \mu_y)^2}{2\sigma_y}\bigr)$ with with $A=0.053$, $\mu_{x,y}=0$, and $\sigma_{x,y}=3$ set empirically.  In order to be used in GAN training, the loss function is formulated as:
+$$
+\begin{align}
+\mathcal{L}_{\text{color}} = -\sum_{i} \log{D_c(G(x)_b)}.
+\end{align}
+$$
+where the $D_c$ is the discriminator network to be trained. We can implement gaussian filtering as below:
+
+```python
+class GaussianSmoothing(nn.Module):
+    def __init__(self, channels, kernel_size, sigma, dim=2):
+        super(GaussianSmoothing, self).__init__()
+        if isinstance(kernel_size, numbers.Number):
+            kernel_size = [kernel_size] * dim
+        if isinstance(sigma, numbers.Number):
+            sigma = [sigma] * dim
+
+        kernel = 1
+        meshgrids = torch.meshgrid(
+            [
+                torch.arange(size, dtype=torch.float32)
+                for size in kernel_size
+            ]
+        )
+        for size, std, mgrid in zip(kernel_size, sigma, meshgrids):
+            mean = (size - 1) / 2
+            kernel *= 1 / (std * math.sqrt(2 * math.pi)) * \
+                      torch.exp(-((mgrid - mean) / std) ** 2 / 2)
+
+        kernel = kernel / torch.sum(kernel)
+
+        kernel = kernel.view(1, 1, *kernel.size())
+        kernel = kernel.repeat(channels, *[1] * (kernel.dim() - 1))
+
+        self.register_buffer('weight', kernel)
+        self.groups = channels
+
+        if dim == 1:
+            self.conv = F.conv1d
+        elif dim == 2:
+            self.conv = F.conv2d
+        elif dim == 3:
+            self.conv = F.conv3d
+        else:
+            raise RuntimeError(
+                'Only 1, 2 and 3 dimensions are supported. Received {}.'.format(dim)
+            )
+
+    def forward(self, input):
+        return self.conv(input, weight=self.weight, groups=self.groups)
+
+```
+
+
+
+
+
+You can find codes for this post in this [Repo](<https://github.com/MKFMIKU/Enhancing-Loss.pytorch>)
 
 ------
 
@@ -112,3 +174,5 @@ class ContentLoss(torch.nn.Module):
 [4] Ledig, C., Theis, L., Huszár, F., Caballero, J., Cunningham, A., Acosta, A., ... & Shi, W. (2017). Photo-realistic single image super-resolution using a generative adversarial network. In *Proceedings of the IEEE conference on computer vision and pattern recognition* (pp. 4681-4690).
 
 [5] Wang, X., Yu, K., Wu, S., Gu, J., Liu, Y., Dong, C., ... & Change Loy, C. (2018). Esrgan: Enhanced super-resolution generative adversarial networks. In *Proceedings of the European Conference on Computer Vision (ECCV)* (pp. 0-0).
+
+[6] Ignatov, A., Kobyshev, N., Timofte, R., Vanhoey, K., & Van Gool, L. (2018). WESPE: weakly supervised photo enhancer for digital cameras. In *Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition Workshops* (pp. 691-700).
