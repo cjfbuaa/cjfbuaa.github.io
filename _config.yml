@@ -16,13 +16,13 @@ minimal_mistakes_skin    : "mint" # "air", "aqua", "contrast", "dark", "dirt", "
 
 # Site Settings
 locale                   : "en-US"
-title                    : "Kangfu Mei's HomePage"
+title                    : "Junfeng Chen's HomePage"
 title_separator          : "-"
-name                     : "Kangfu Mei"
-description              : "The personal website of Kangfu Mei - 康夫"
+name                     : "Junfeng Chen"
+description              : "The personal website of Junfeng Chen -俊锋"
 url                      : # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 baseurl                  : # the subpath of your site, e.g. "/blog"
-repository               : "mkfmiku/mkfmiku.github.io"
+repository               : "JunfengChen-robotics/JunfengChen-robotics.github.io"
 teaser                   : # path of fallback teaser image, e.g. "/assets/images/500x300.png"
 # breadcrumbs            : false # true, false (default)
 words_per_minute         : 200
@@ -100,11 +100,11 @@ analytics:
 
 # Site Author
 author:
-  name             : "Kangfu Mei"
+  name             : "Junfeng Chen"
   avatar           : "/assets/images/bio-photo.png"
-  bio              : "M.Phil Student at The Chinese University of Hong Kong,Shenzhen."
-  location         : "Shenzhen, China"
-  email            : "mikumkf@gmail.com"
+  bio              : "A Graduate Student at Beihang University."
+  location         : "Beijing, China"
+  email            : "cjfbuaa@gmail.com"
   uri              : 
   home             : # null (default), "absolute or relative url to link to author home"
   bitbucket        :
@@ -113,7 +113,7 @@ author:
   flickr           :
   facebook         :
   foursquare       :
-  github           : "MKFMIKU"
+  github           : "JunfengChen-robotics"
   gitlab           :
   google_plus      :
   keybase          :
