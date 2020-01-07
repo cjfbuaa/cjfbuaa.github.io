@@ -1,6 +1,6 @@
 ---
 layout: single
-title:  "Loss Functions in Image Enhancements"
+title:  "Loss Functions in Image Enhancements11111111111"
 ---
 
 ## What is the Loss function?
