@@ -101,7 +101,7 @@ analytics:
 # Site Author
 author:
   name             : "Junfeng Chen"
-  avatar           : "/assets/images/bio-image.jpg"
+  avatar           : "/assets/image/bio-image.jpg"
   bio              : "Knowledges obtained on the papers always feel shallow, must know this thing to practice.\n Practice makes perfect."
   location         : "Beijing, China"
   email            : "cjfbuaa@gmail.com"
